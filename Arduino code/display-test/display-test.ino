@@ -11,7 +11,7 @@
 */
 
 
-U8G2_SSD1306_128X64_NONAME_F_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/ 13, /* data=*/ 11, /* cs=*/ 10, /* dc=*/ 9, /* reset=*/ 8);
+U8G2_SSD1306_128X64_NONAME_F_4W_SW_SPI u8g2(U8G2_R0, /* clock=*/ 3, /* data=*/ 4, /* cs=*/ 7, /* dc=*/ 6, /* reset=*/ 5);
 
 void setup(void) {
   u8g2.begin();
@@ -23,5 +23,6 @@ void loop(void) {
   u8g2.drawUTF8(10,10,"Hello World!");	// write something to the internal memory
   u8g2.drawUTF8(10,50,"Næste linje!"); // write something to the internal memory
   u8g2.sendBuffer();					// transfer internal memory to the display
+  digitalWrite(13, HIGH);
   delay(1000);  
 }
