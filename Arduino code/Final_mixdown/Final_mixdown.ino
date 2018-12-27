@@ -61,26 +61,29 @@ Thread* displayThread = new Thread();
 U8X8_SH1106_128X64_NONAME_HW_I2C u8x8(U8X8_PIN_NONE); //Using HW I2C pins (18 (A4) - SDA, 19 (A5) - SCL)
 // Values:
 char tmp_char[4];
-bool active_val = 0;
+byte active_val = 1;
 int blink_timer;
 bool timer_toggle = 0;
 
 // Vars for airgun control:
+// Constructors:
+Thread* airgunThread = new Thread();
 // Pins:
-int airgun_sw_pin = 9;
-int airgun_fan_pin = 12;
+int airgun_sw_pin = 11;
+int airgun_fan_pin = 9;
 int airgun_ht_pin = 13;
 int airgun_relay_pin = 14; // A0
 int airgun_tc_pin = 17;
 // Values:
-int airgun_temp;
+int airgun_set_temp = 0;
+int airgun_actual_temp = 0;
 int airgun_fan_speed = 0;
 
 // Vars for iron control:
 // Constructors:
 Thread* ironThread = new Thread();
 // Pins:
-int iron_ht_pin = 11;
+int iron_ht_pin = 12;
 int iron_tc_pin = 16;
 // Values:
 int iron_on_counter = 0;
@@ -135,12 +138,16 @@ void setup() {
   displayThread->onRun(displayControl);  // Specifying the function to run
   // Iron thread
   ironThread->setInterval(50);       // Interval in ms to run the displayControl
-  ironThread->onRun(ironControl);  // Specifying the function to run
+  ironThread->onRun(ironControl);   // Specifying the function to run
+  // Airgun thread
+  airgunThread->setInterval(500);       // Interval in ms to run the displayControl
+  airgunThread->onRun(airgunControl);  // Specifying the function to run
 
   threadController.add(frontPanelThread);
   threadController.add(chassisThread);
   threadController.add(displayThread);
-  threadController.add(ironThread);
+  //threadController.add(ironThread);
+  //threadController.add(airgunThread);
 
   // Display setup:
   u8x8.begin();
@@ -169,6 +176,9 @@ void setup() {
   standby_timer_stop = 600000; //Timer is set to stop after 1 minute (60000 ms)
   standby_threshold = 500;
 
+  // Airgun setup:
+  //pinMode(airgun_fan_pin, OUTPUT);
+
   // Chassis fan setup
   pinMode(chassis_fan_pin, OUTPUT);
   chassis_fan_init();
@@ -177,7 +187,7 @@ void setup() {
   // Loading iron temperature
   EEPROM.get(0, iron_set_temp);
   // Loading airgun temperature
-  EEPROM.get(2, airgun_temp);
+  EEPROM.get(2, airgun_set_temp);
 
   // Sends feedback for completed setup
   Serial.println("Setup complete");
@@ -201,6 +211,10 @@ void loop() {
 
   // Run threads:
   threadController.run();
+
+  int airgun_set = airgun_fan_speed;
+  
+  analogWrite(airgun_fan_pin, airgun_set);
 
   //  Serial.print("Blink timer: ");
   //  Serial.println(blink_timer);
@@ -273,27 +287,27 @@ void chassis_fan_set(int speed) {
 void ironControl() {
 
   int iron_temp_read = 1.23 * analogRead(iron_tc_pin) - 183.;
-  iron_actual_temp = (iron_temp_read/5 + (iron_temp_read%5>2)) * 5; // Reads in 5 incrimentals
+  iron_actual_temp = (iron_temp_read / 5 + (iron_temp_read % 5 > 2)) * 5; // Reads in 5 incrimentals
 
   if ((millis() > (standby_timer_start + standby_timer_stop))) {
     //Serial.println("Timer has stopped");
-//    Serial.print("iron_on_counter: ");
-//    Serial.println(iron_on_counter);
+    //    Serial.print("iron_on_counter: ");
+    //    Serial.println(iron_on_counter);
     if (iron_on_counter < standby_threshold) {
       iron_in_standby = 1;
       digitalWrite(iron_ht_pin, LOW);
       iron_ht_on = 0;
-//      Serial.println("Iron in standby");
+      //      Serial.println("Iron in standby");
     } else if (iron_on_counter > standby_threshold) {
       iron_in_standby = 0;
       iron_on_counter = 0;
       standby_timer_start = millis();
-//      Serial.println("Iron NOT in standby");
+      //      Serial.println("Iron NOT in standby");
     }
   } else if ((millis() < (standby_timer_start + standby_timer_stop))) {
-//    Serial.print(millis());
-//    Serial.print(" out of ");
-//    Serial.println(standby_timer_start + standby_timer_stop);
+    //    Serial.print(millis());
+    //    Serial.print(" out of ");
+    //    Serial.println(standby_timer_start + standby_timer_stop);
   }
 
   if (iron_in_standby) {
@@ -313,6 +327,14 @@ void ironControl() {
     //Serial.println(iron_on_counter);
   }
 
+}
+
+void airgunControl() {
+
+  int airgun_set = airgun_fan_speed;
+  airgun_actual_temp = analogRead(airgun_tc_pin);
+  Serial.println(airgun_actual_temp);
+  
 }
 
 void standbyReset() {
@@ -367,7 +389,13 @@ void fronPanelControl() {
         loadPreset(activePreset);
         break;
       case 3:
-        active_val = !active_val;
+        if (active_val == 1) {
+          active_val = 2;
+        } else if (active_val == 2) {
+          active_val = 3;
+        } else if (active_val == 3) {
+          active_val = 1;
+        }
         break;
       case 11:
         savePreset(1);
@@ -424,24 +452,24 @@ void savePreset(bool nr) {
     EEPROM.put(0, iron_set_temp);
 
     // Storing airgun temperature
-    EEPROM.put(2, airgun_temp);
+    EEPROM.put(2, airgun_set_temp);
 
     //    Serial.print("Saved preset as: ");
     //    Serial.print(iron_set_temp);
     //    Serial.print(" and ");
-    //    Serial.println(airgun_temp);
+    //    Serial.println(airgun_set_temp);
     blinkLED(nr);
 
   } else if (!nr) {// Preset 02 (orange)
     // Storing iron temperatures
     EEPROM.put(4, iron_set_temp);
     // Storing airgun temperature
-    EEPROM.put(6, airgun_temp);
+    EEPROM.put(6, airgun_set_temp);
 
     //    Serial.print("Saved airgun as: ");
     //    Serial.print(iron_set_temp);
     //    Serial.print(" and ");
-    //    Serial.println(airgun_temp);
+    //    Serial.println(airgun_set_temp);
     blinkLED(nr);
 
   }
@@ -455,24 +483,24 @@ void loadPreset(bool nr) {
     EEPROM.get(0, iron_set_temp);
 
     // Loading airgun temperatures
-    EEPROM.get(2, airgun_temp);
+    EEPROM.get(2, airgun_set_temp);
 
     //    Serial.print("Loaded iron as: ");
     //    Serial.print(iron_set_temp);
     //    Serial.print(" and ");
-    //    Serial.println(airgun_temp);
+    //    Serial.println(airgun_set_temp);
 
   } else if (!nr) {// Preset 02 (orange)
     // Loading iron temperatures
     EEPROM.get(4, iron_set_temp);
 
     // Loading airgun temperatures
-    EEPROM.get(6, airgun_temp);
+    EEPROM.get(6, airgun_set_temp);
 
     //    Serial.print("Loaded iron as: ");
     //    Serial.print(iron_set_temp);
     //    Serial.print(" and ");
-    //    Serial.println(airgun_temp);
+    //    Serial.println(airgun_set_temp);
 
   }
 
@@ -517,11 +545,14 @@ void updateEncoder() {
   int bounce = interruptTime - lastInterruptTime;
 
   switch (active_val) {
-    case 0:
+    case 1:
       encoderValue = iron_set_temp;
       break;
-    case 1:
-      encoderValue = airgun_temp;
+    case 2:
+      encoderValue = airgun_set_temp;
+      break;
+    case 3:
+      encoderValue = airgun_fan_speed;
       break;
   }
 
@@ -545,11 +576,14 @@ void updateEncoder() {
   time_temp_sat = millis();
 
   switch (active_val) {
-    case 0:
+    case 1:
       iron_set_temp = min(500, max(0, encoderValue));
       break;
-    case 1:
-      airgun_temp = min(500, max(0, encoderValue));
+    case 2:
+      airgun_set_temp = min(500, max(0, encoderValue));
+      break;
+    case 3:
+      airgun_fan_speed = min(255, max(0, encoderValue));
       break;
   }
 
@@ -559,48 +593,94 @@ void updateEncoder() {
 
 void displayControl() {
 
-      switch (active_val) {
-        case 0:
-          if (iron_ht_on) {
-            u8x8.drawString(1, 2, "^");
-          } else if (!iron_ht_on) {
-            u8x8.drawString(1, 2, "-");
-          }
-          u8x8.drawString(1, 4, " ");
-          break;
-        case 1:
-          u8x8.drawString(1, 2, " ");
-          u8x8.drawString(1, 4, "-");
-          break;
+  switch (active_val) {
+    case 1:
+      if (iron_ht_on) {
+        u8x8.drawString(1, 1, "^");
+      } else if (!iron_ht_on) {
+        u8x8.drawString(1, 1, "-");
       }
+      u8x8.drawString(1, 3, " ");
+      u8x8.drawString(1, 5, " ");
+      break;
+    case 2:
+      u8x8.drawString(1, 1, " ");
+      u8x8.drawString(1, 3, "-");
+      u8x8.drawString(1, 5, " ");
+      break;
+    case 3:
+      u8x8.drawString(1, 1, " ");
+      u8x8.drawString(1, 3, " ");
+      u8x8.drawString(1, 5, "-");
+      break;
+  }
 
-      if (blink_timer >= 40) {
-        timer_toggle = !timer_toggle;
-        blink_timer = 0;
-      }
+  if (blink_timer >= 40) {
+    timer_toggle = !timer_toggle;
+    blink_timer = 0;
+  }
 
-      u8x8.setFont(u8x8_font_pcsenior_u);
-      u8x8.drawString(2, 2, "IRON: ");
+  // Setting the font to use
+  u8x8.setFont(u8x8_font_pcsenior_u);
 
-      if (timer_toggle && iron_in_standby) {
-        u8x8.drawString(11, 2, "   ");
-      } else {
-        if (millis() < (time_temp_sat + 2000)) {
-          u8x8.drawString(10, 2, "*");
-          sprintf(tmp_char, "%03d", iron_set_temp);
-          u8x8.drawString(11, 2, tmp_char);
-        } else if (millis() >= (time_temp_sat + 2000)) {
-          u8x8.drawString(10, 2, " ");
-          sprintf(tmp_char, "%03d", iron_actual_temp);
-          u8x8.drawString(11, 2, tmp_char);
-        }
-      }
-      u8x8.drawString(13, 2, "\n");
-      sprintf(tmp_char, "%03d", airgun_temp);
-      u8x8.drawString(2, 4, "AIRGUN: ");
-      u8x8.drawString(11, 4, tmp_char);
-      //u8x8.drawString(13,4," \n");
+  // Drawing the iron part
+  u8x8.drawString(2, 1, "IRON: ");
 
-      blink_timer++;
-
+  // "Blinking" the temp if iron in standby
+  if (timer_toggle && iron_in_standby) {
+    u8x8.drawString(11, 1, "   ");
+  } else {
+  if (active_val != 1) {
+      u8x8.drawString(10, 1, " ");
+      sprintf(tmp_char, "%03d", iron_actual_temp);
+      u8x8.drawString(11, 1, tmp_char);
+  } else if ((millis() < (time_temp_sat + 2000)) && (active_val==1)) {
+      u8x8.drawString(10, 1, "*");
+      sprintf(tmp_char, "%03d", iron_set_temp);
+      u8x8.drawString(11, 1, tmp_char);
+    } else if ((millis() >= (time_temp_sat + 2000))) {
+      u8x8.drawString(10, 1, " ");
+      sprintf(tmp_char, "%03d", iron_actual_temp);
+      u8x8.drawString(11, 1, tmp_char);
     }
+  }
+  //u8x8.drawString(13, 2, "\n");
+
+  // Drawing the airgun part:
+  // Airgun temp:
+  u8x8.drawString(2, 3, "AIRGUN: ");
+
+  // If the temp have been sat in the last 2 seconds (2000 ms) show set_temp
+  // (and star '*'), else show actual_temp.
+  if (active_val!=2) {
+    u8x8.drawString(10, 3, " ");
+    sprintf(tmp_char, "%03d", airgun_actual_temp);
+    u8x8.drawString(11, 3, tmp_char);
+  } else if (((millis() < (time_temp_sat + 2000))) && (active_val==2)) {
+    u8x8.drawString(10, 3, "*");
+    sprintf(tmp_char, "%03d", airgun_set_temp);
+    u8x8.drawString(11, 3, tmp_char);
+  } else if ((millis() >= (time_temp_sat + 2000))) {
+    u8x8.drawString(10, 3, " ");
+    sprintf(tmp_char, "%03d", airgun_actual_temp);
+    u8x8.drawString(11, 3, tmp_char);
+  }
+  // Airgun air speed:
+  u8x8.drawString(2, 5, "AIR SP: ");
+
+  // If the temp have been sat in the last 2 seconds (2000 ms) show set_temp
+  // (and star '*'), else show actual_temp.
+  if (active_val!=3) {
+    u8x8.drawString(10, 5, " ");
+    sprintf(tmp_char, "%03d", airgun_fan_speed);
+    u8x8.drawString(11, 5, tmp_char);
+  } else if (active_val==3) {
+    u8x8.drawString(10, 5, "*");
+    sprintf(tmp_char, "%03d", airgun_fan_speed);
+    u8x8.drawString(11, 5, tmp_char);
+  }
+  //u8x8.drawString(13,4," \n");
+
+  blink_timer++;
+
+}

@@ -46,10 +46,10 @@ D        2  rot_1
          6  rot_sw
          7  orag_sw
          8  blue_sw
-         9  air_gn_sw
+         9  air_gn_fan
         10  chassis_fan
-        11  iron_ht         (triac)
-        12  air_gn_fan
+        11  air_gn_sw
+        12  iron_ht         (triac)
         13  air_gn_ht       (triac)
 A   0   14  air_gn_relay
     1   15  mains_relay
