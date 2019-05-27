@@ -6,11 +6,16 @@ Yellow: 30V~
 Iron temp-cal for now: 380 is adequate for soldering (as 130ohm on meter and reacting as around 350 degree, maybe?)
 
 "Calibrations":
-200 = 65 degree
-250 = 115 degree
-300 = 200 degree
-350 = 240 degree
-400 = 310 degree
+100 =  82 degree
+120 = 115 degree
+140 = 161 degree
+160 = 228 degree
+180 = 274 degree
+200 = 316 degree
+220 = 359 degree
+240 = 396 degree
+260 = 432 degree
+280 = 465 degree
 
 
 Airgun colours:
@@ -26,6 +31,16 @@ White: Reed switch +V (Ground shared with thermocouple)
 Green: Fan +V
 Blue: Fan -V
 
+Airgun fan speed:
+
+Min.: 98(/99?)
+
+
+ARDUINO INFO:
+
+Programmer: AVR ISP
+Baord: Arduino nano
+Processor: oldbootloader
 
 Display libraries size in bytes dyn. mem. (all hello world examples on arduino "pro mini"/micro):
 
@@ -41,21 +56,21 @@ Arduino pinouts:
 
 D        2  rot_1
          3  rot_2
-         4  blue_led
-         5  orag_led
-         6  rot_sw
-         7  orag_sw
-         8  blue_sw
-         9  air_gn_fan
-        10  chassis_fan
-        11  air_gn_sw
-        12  iron_ht         (triac)
-        13  air_gn_ht       (triac)
-A   0   14  air_gn_relay
-    1   15  mains_relay
-    2   16  iron_tc         (Thermocouple)
-    3   17  air_gn_tc       (Thermocouple)
-    4   18  displ_sda
-    5   19  displ_scl
-    6   20  mains_sw
-    7   21  chassis_temp
+         4  
+         5  
+         6  
+         7  
+         8  
+         9  
+        10  
+        11  
+        12  
+        13  
+A   0   14  
+    1   15  
+    2   16  
+    3   17  
+    4   18  
+    5   19  
+    6   20  
+    7   21  

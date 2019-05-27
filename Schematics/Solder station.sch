@@ -1,6 +1,5 @@
 EESchema Schematic File Version 4
 LIBS:Solder station-cache
-LIBS:Power board-cache
 EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
@@ -25,7 +24,7 @@ $Sheet
 S 900  2750 3000 550 
 U 5C287C9A
 F0 "Logic board" 207
-F1 "logic_boardsch.sch" 50
+F1 "logic_board.sch" 50
 $EndSheet
 Text Notes 600  1650 0    326  ~ 65
 Different boards sat as individual\nheiratical sheets below:
