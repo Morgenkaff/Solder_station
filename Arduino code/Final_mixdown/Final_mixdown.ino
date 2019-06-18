@@ -49,7 +49,7 @@ Thread* chassisThread = new Thread();
 // Pins:
 int chassis_fan_pin = 9;
 int mains_relay_pin = 7;
-int chassis_temp_pin = 17;
+int chassis_temp_pin = 14;
 // Values:
 int chassis_fan_speed = 2;
 int chassis_temp = 0;
@@ -70,7 +70,7 @@ bool timer_toggle = 0;
 // Constructors:
 Thread* airgunThread = new Thread();
 // Pins:
-int airgun_sw_pin = 14;
+int airgun_sw_pin = 17;
 int airgun_fan_pin = 10;
 int airgun_ht_pin = 5;
 int airgun_relay_pin = 6;
@@ -101,7 +101,7 @@ unsigned long standby_timer_stop;
 int standby_threshold;
 bool iron_in_standby = 0;
 int iron_read_temp = 0;
-int iron_bounce_temp = 0;
+int iron_cal_temp = 0;
 int iron_used_temp = 0;
 int iron_last_temp = 0;
 int iron_set_temp;
@@ -135,7 +135,7 @@ void setup() {
   frontPanelThread->setInterval(50);       // Interval in ms to run the fronPanelControl
   frontPanelThread->onRun(fronPanelControl);  // Specifying the function to run
   // Chassis thread (fan, temp, mains)
-  chassisThread->setInterval(2000);       // Interval in ms to run the chassisControl
+  chassisThread->setInterval(2000);       // Interval in ms to run thet chassisControl
   chassisThread->onRun(chassisControl);  // Specifying the function to run
   // Display thread
   displayThread->setInterval(10);       // Interval in ms to run the displayControl
@@ -291,7 +291,7 @@ void ironControl() {
 //  Serial.print("Iron read temp: ");
 //  Serial.println(iron_read_temp);
 
-  iron_bounce_temp = -0.0000277292 * pow(iron_read_temp,3) + 0.0129458 * pow(iron_read_temp,2) + 0.45101 * iron_read_temp - 70.6033;
+  iron_cal_temp = 4.2 * iron_read_temp + 70.5;
   
 //  Serial.println("iron_last_temp: ");
 //  Serial.println(iron_last_temp);
@@ -299,9 +299,9 @@ void ironControl() {
 //  Serial.println(iron_bounce_temp);
   
   // Used to "debounce" some extreme readouts
-  if ((iron_bounce_temp - iron_last_temp) < 10){
+  if ((iron_cal_temp - iron_last_temp) < 10){
     //Serial.println("change iron temp");
-    iron_used_temp = iron_bounce_temp;
+    iron_used_temp = iron_cal_temp;
   }
 
   // Standby functionality
@@ -342,7 +342,7 @@ void ironControl() {
     }
   }
 
-  iron_last_temp = iron_bounce_temp;
+  iron_last_temp = iron_cal_temp;
 
 }
 
@@ -383,7 +383,7 @@ void airgunControl() {
 
   //Airgun relay:
 
-  // Checks if the airgun is attached (the thermocouple is read correctly):
+  // Checks if the airgun is attached (the thermocouple is read correctly): 
   if (airgun_read_temp < 700){
     Serial.print("Airgun relay: ");
     Serial.println(airgun_relay_on);
@@ -394,17 +394,17 @@ void airgunControl() {
     Serial.println(airgun_relay_on);
   }
 
-  digitalWrite(airgun_relay_pin, airgun_relay_on);
+  //digitalWrite(airgun_relay_pin, airgun_relay_on);
 
   //Airgun heater:
   
   if (airgun_set_temp > (airgun_used_temp)) {
       Serial.println("Airgun heater: ON");
-      digitalWrite(airgun_ht_pin, HIGH);
+      //digitalWrite(airgun_ht_pin, HIGH);
       airgun_ht_on = 1;
     } else if (airgun_set_temp < airgun_used_temp) {
       Serial.println("Airgun heater: OFF");
-      digitalWrite(airgun_ht_pin, LOW);
+      //digitalWrite(airgun_ht_pin, LOW);
       airgun_ht_on = 0;
     }
   

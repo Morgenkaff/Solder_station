@@ -3,19 +3,13 @@ Black: 10V~
 Blue: 30V~
 Yellow: 30V~
 
-Iron temp-cal for now: 380 is adequate for soldering (as 130ohm on meter and reacting as around 350 degree, maybe?)
-
 "Calibrations":
-100 =  82 degree
-120 = 115 degree
-140 = 161 degree
-160 = 228 degree
-180 = 274 degree
-200 = 316 degree
-220 = 359 degree
-240 = 396 degree
-260 = 432 degree
-280 = 465 degree
+ 50 = 275
+ 60 = 325
+ 70 = 365
+ 80 = 400
+ 90 = 450
+100 = 485
 
 
 Airgun colours:
